@@ -1,0 +1,247 @@
+# AR Glasses Simulator (iPhone + PC) — Project Spec
+
+## 0) One-sentence summary
+Build a real-time “AR glasses” prototype where an **iPhone provides camera + sensors + mic**, and a **PC/laptop renders a HUD overlay** that supports **live translation**, **navigation**, **voice/gesture commands**, and a **to-do/schedule panel**.
+
+---
+
+## 1) Goals and Non-Goals
+
+### Goals (must deliver)
+- Live iPhone camera feed displayed on PC in real time
+- AR/HUD overlay system (panels + subtitles + navigation prompts)
+- Live translation:
+  - Speech-to-text → translation → subtitle overlay
+  - OCR translation for signs/menus/text in camera view
+  - Voice assistant can switch source/target languages
+- Navigation:
+  - Voice: “Navigate to X”
+  - Show next maneuver + distance + direction indicator
+  - Show remaining distance + ETA
+- AI voice assistant + gesture commands:
+  - Voice commands always active
+  - Gestures adjust UI windows/panels position (MVP: toggle/move/resize)
+- To-do + daily/weekly schedule:
+  - Today view + basic week view
+  - Add/edit/reorder via voice (MVP: add + mark done + reorder)
+- Camera control:
+  - Voice: “Take picture” → saves screenshot/photo
+
+### Non-Goals (explicitly out of scope for MVP)
+- Full 3D AR world anchoring like real glasses (no true spatial mapping in MVP)
+- Full notification mirroring from iOS OS-level notifications
+- Full offline “everything” translation without any models/APIs (optional future)
+- Fitness tracking (steps/kcal) beyond a simple placeholder (future)
+
+---
+
+## 2) System Architecture (MVP)
+
+### Devices
+- **iPhone (sensor node)**
+  - Camera stream (mandatory)
+  - Mic audio (preferred)
+  - Orientation/gyro/heading + GPS (Phase 4+)
+- **PC/Laptop (render + compute node)**
+  - Receives iPhone stream
+  - Runs CV/ML + routing + task manager
+  - Renders HUD overlay and handles commands
+
+### Data flows
+- iPhone → PC: video (Phase 1), audio (Phase 2), sensors (Phase 4)
+- PC → iPhone: optional (future) minimal control messages
+
+---
+
+## 3) Recommended Tech Stack (specific)
+
+> Primary recommendation: **Python-first** for fastest integration of CV + ML.
+> Optional: use C# for a more polished UI later.
+
+### Overall app
+- **Language:** Python 3.10+
+- **Core libs:**
+  - `opencv-python` (camera frames, drawing overlays)
+  - `numpy` (image/frame operations)
+- **UI/HUD options (choose one):**
+  1) **OpenCV fullscreen window** (fastest MVP)
+  2) **PyQt6** (best for multi-panel HUD + moving windows)
+  3) **DearPyGui** (easier UI than Qt, still powerful)
+- **Backend server for sensors/commands (Phase 3/4):**
+  - `fastapi` + `uvicorn` + WebSockets (receive iPhone sensor data)
+- **Storage for tasks/schedule:**
+  - MVP: `sqlite3` (built-in) OR JSON files
+  - Upgrade: SQLAlchemy (`sqlalchemy`) + SQLite
+- **Packaging/Dev:**
+  - `requirements.txt` or Poetry
+  - Git + GitHub
+  - VS Code (Python) / Visual Studio (C# optional)
+
+### iPhone → PC streaming (Phase 1 choice)
+- Fastest setup:
+  - **Iriun Webcam** (iPhone becomes a webcam device on PC)
+- More robust for audio/video:
+  - **NDI Camera** (iPhone streams A/V over LAN) + NDI Tools on PC
+- Custom (future):
+  - iOS app (Swift) + WebRTC for low-latency A/V
+
+### Feature 1 — Live Translation / Interpretation
+**Speech translation**
+- Speech-to-text:
+  - `faster-whisper` (recommended for speed)
+  - Alt: `openai-whisper` (slower)
+- Translation:
+  - MVP online: DeepL API or Google Translate API (best quality, needs key)
+  - MVP offline: `transformers` + MarianMT (heavier; may be slower)
+- Text-to-speech (optional):
+  - `pyttsx3` (offline basic)
+  - Alt: system TTS / cloud TTS
+
+**OCR translation (signs/menus/text)**
+- OCR:
+  - `easyocr` (simple)
+  - Alt: `paddleocr` (strong, bigger)
+- Optional text box detection refinement:
+  - `opencv` preprocessing (threshold/denoise)
+- Overlay:
+  - draw bounding boxes + translated text onto frame
+
+### Feature 2 — Navigation (voice + routing)
+- Voice command “Navigate to …” → geocode + route steps
+- Routing API:
+  - Google Maps **Routes API** (recommended)
+  - Alternatives: Mapbox Directions / OpenRouteService
+- PC side:
+  - `requests` (HTTP)
+  - compute next instruction + distance + ETA
+- Direction arrow (MVP):
+  - simple left/right/forward indicator from route step instruction
+- Direction arrow (upgrade):
+  - use iPhone heading (compass) to compute relative turn angle
+
+### Feature 3 — Voice Assistant + Gesture Commands
+**Voice**
+- Reuse speech-to-text pipeline (Whisper)
+- Intent parsing:
+  - MVP: simple command grammar (keywords + regex)
+  - Upgrade: Rasa / small local LLM (optional)
+
+**Gestures**
+- Hand tracking:
+  - `mediapipe` Hands (recommended)
+- Gesture classification:
+  - MVP: rule-based from landmarks (pinch distance, fist/open palm)
+  - Upgrade: small classifier model trained on landmarks
+- Actions:
+  - toggle panels / move panel focus / “confirm” / take photo
+
+### Feature 4 — To-Do List / Schedule
+- Data:
+  - SQLite schema: tasks, schedule_items
+- UI:
+  - right-side panel overlay
+- Voice actions:
+  - “Add task …”
+  - “Mark task 2 done”
+  - “Show week”
+  - “Move task X above Y” (upgrade)
+
+### Feature 5 — Camera Control
+- Voice command → save frame as image
+- Optional: save raw iPhone stream frame vs “HUD composed” frame
+
+---
+
+## 4) Tools / Software to Install
+- Python 3.10+
+- VS Code + Python extension
+- Git
+- iPhone streaming:
+  - Iriun Webcam OR NDI Camera (+ NDI Tools)
+- (Optional) OBS Studio if you need a virtual camera pipeline
+- (Phase 4) API keys:
+  - Google Maps Platform key (Routes API)
+  - Translation API key (DeepL/Google) if using cloud translation
+
+---
+
+## 5) Skills Checklist (what I must learn/use)
+### Core engineering
+- Python project structure, virtual environments, dependency management
+- Real-time video processing (OpenCV)
+- Drawing overlays and handling UI events (OpenCV window or PyQt)
+- Async + real-time loops (threads/queues to avoid UI freezing)
+- REST APIs (routing/translation)
+- WebSockets (for iPhone sensor streaming later)
+
+### CV/ML
+- Using pretrained models (Whisper, OCR, MediaPipe)
+- Latency and performance tuning (frame skipping, batching, resolution scaling)
+- Basic evaluation metrics (latency, accuracy)
+
+### iPhone integration (Phase 4+)
+- Basic iOS dev (Swift)
+- CoreMotion + CoreLocation
+- Sending data to PC (WebSocket/UDP)
+
+---
+
+## 6) Implementation Plan (Phases + “Done” criteria)
+
+### Phase 1 — Video + HUD skeleton (MVP shell)
+**Input:** iPhone video stream  
+**Output:** PC fullscreen HUD with overlays + toggles + screenshot  
+**Done when:**
+- stable video feed at >= 20 FPS
+- overlay shows FPS/time/status
+- panels can be toggled (translation bar, tasks panel)
+- screenshot saved on command
+
+### Phase 2 — Live translation subtitles (speech + OCR)
+**Input:** mic audio (PC mic first; iPhone mic later) + video frames  
+**Output:** translated subtitles overlay + OCR translation overlay  
+**Done when:**
+- speech appears as subtitles (source + translated)
+- OCR reads a sign/menu and shows translation overlay
+- voice command: “Switch to [language]” works
+
+### Phase 3 — Voice + gesture commands
+**Input:** audio + camera frames  
+**Output:** control HUD features hands-free  
+**Done when:**
+- voice commands reliably toggle panels, take photo, manage tasks
+- 3–5 gestures recognized with acceptable reliability
+- gestures can move/toggle at least one panel
+
+### Phase 4 — Navigation overlay
+**Input:** voice destination + routing API (+ optional iPhone GPS/heading)  
+**Output:** next step + distance + ETA + arrow indicator  
+**Done when:**
+- “Navigate to X” triggers route
+- HUD shows next maneuver + distance + ETA
+- updating step when “Next step” is triggered (MVP)
+- (Upgrade) auto-updates using GPS
+
+---
+
+## 7) Evaluation (what I will measure)
+- End-to-end latency (camera→HUD)
+- Translation latency (speech→subtitle)
+- OCR accuracy on sample signs/menus
+- Gesture recognition accuracy on a small test set
+- Navigation correctness: steps match routing output
+
+---
+
+## 8) Risks + Simplifications
+- If audio from iPhone is hard: use PC mic for MVP
+- If gyro/GPS integration is hard: show navigation steps without AR arrow anchoring
+- If OCR is slow: run OCR on-demand (“Translate text” voice command) instead of always-on
+
+---
+
+## 9) Future Work
+- Replace PC with phone-only compute (or mini-PC / compute puck)
+- Move to ARKit for proper spatial anchoring if targeting real AR glasses
+- Proper on-device/offline translation stack + quantized models
+- Notification integration and cross-app hooks

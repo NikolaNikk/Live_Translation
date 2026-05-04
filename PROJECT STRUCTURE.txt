@@ -1,0 +1,311 @@
+PROJECT STRUCTURE
+
+Create this:
+
+smart_glasses/
+│
+├── main.py
+│
+├── config.py
+│
+│
+├── audio/
+│   ├── input.py
+│   ├── vad.py
+│   └── devices.py
+│
+├── asr/
+│   ├── client.py
+│   ├── server_runner.py
+│   └── parser.py
+│
+├── translation/
+│   ├── translator.py
+│   └── language_manager.py
+│
+├── vision/
+│   ├── face_tracking.py
+│   ├── person_selection.py
+│   └── ocr.py
+│
+├── subtitles/
+│   ├── subtitle_engine.py
+│   └── overlay.py
+│
+├── tasks/
+│   └── reminders.py
+│
+└── utils/
+    └── logger.py
+
+This is future-safe.
+
+Very important.
+
+WHAT EACH PART DOES
+audio/
+
+Only handles:
+
+microphone
+volume
+silence detection
+audio cleanup
+device selection
+
+Nothing else.
+
+asr/
+
+Only handles:
+
+SimulStreaming
+Whisper
+Sherpa later
+socket communication
+transcript parsing
+
+Nothing else.
+
+This lets you replace:
+
+SimulStreaming → Sherpa
+
+without destroying the app.
+
+Huge.
+
+translation/
+
+Only handles:
+
+text translation
+language selection
+language rules
+
+Nothing else.
+
+vision/
+
+Only handles:
+
+camera
+face detection
+person tracking
+OCR
+object recognition
+
+Nothing else.
+
+subtitles/
+
+Only handles:
+
+subtitle smoothing
+placement
+HUD logic
+caption flow
+
+This becomes one of the hardest modules later.
+
+config.py
+
+This is VERY important.
+
+Put things like:
+
+SOURCE_LANGUAGE = "en"
+TARGET_LANGUAGE = "bg"
+DEVICE_INDEX = 25
+SERVER_PORT = 43001
+MODEL_SIZE = "small"
+
+here.
+
+Never hardcode them everywhere.
+
+Huge best practice.
+
+WHAT TO CHANGE FIRST
+
+Right now:
+
+Your live transcript code
+
+should become:
+
+asr/client.py
+
+not test.py
+
+This is step one.
+
+WHAT main.py SHOULD DO
+
+Only this:
+
+start app
+↓
+load config
+↓
+start audio
+↓
+start ASR
+↓
+send transcript to subtitles
+↓
+translation later
+
+Nothing huge.
+
+Keep main clean.
+
+Very important.
+
+NEXT TECHNLOGY DECISIONS
+FOR NOW
+
+Use:
+
+SimulStreaming
+
+because fast to prototype.
+
+Good choice.
+
+LATER
+
+Prepare for:
+
+sherpa-onnx
+
+because better for embedded deployment.
+
+Very important.
+
+FOR VAD
+
+Use:
+
+Silero VAD
+
+later.
+
+Much better than manual volume threshold.
+
+Huge upgrade.
+
+FOR TRANSLATION
+
+Later:
+
+Meta AI NLLB
+
+or
+
+Argos Open Tech Argos Translate
+
+depending on speed.
+
+FOR FACE TRACKING
+
+Later:
+
+MediaPipe
+
+best starting point.
+
+Very practical.
+
+YOUR IMMEDIATE TASKS
+
+Do ONLY this:
+
+TASK 1
+
+Stabilize:
+
+live transcription
+
+No hallucinations
+
+No freezes
+
+Low delay
+
+This is the foundation.
+
+TASK 2
+
+Move code into:
+
+proper project structure
+
+Very important.
+
+Do not skip.
+
+TASK 3
+
+Add:
+
+clean subtitle output
+
+not terminal spam.
+
+Real flowing captions.
+
+TASK 4
+
+Add:
+
+translation
+
+AFTER transcription is stable.
+
+Not before.
+
+DO NOT TOUCH YET
+
+Avoid for now:
+
+gestures
+object detection
+reminders
+assistant tools
+fancy UI
+
+These are later.
+
+Stay focused.
+
+YOUR PHASE ORDER
+
+Correct professional order:
+
+1. ASR stability
+2. Subtitle engine
+3. Translation
+4. Active speaker detection
+5. HUD placement
+6. OCR
+7. Assistant commands
+8. Deployment optimization
+
+This is the right path.
+
+My strongest advice
+
+Do NOT build features.
+
+Build:
+
+replaceable systems
+
+That is what makes your project strong.
+
+That is what makes deployment possible.
+
+That is what makes professors impressed.
+
+That is what makes real products work.
